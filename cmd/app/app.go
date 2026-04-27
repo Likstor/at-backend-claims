@@ -130,7 +130,7 @@ func main() {
 	mainMuxWrapped = middleware.Correlation(mainMuxWrapped)
 
 	finMux := http.NewServeMux()
-	finMux.Handle("/v1/", mainMuxWrapped)
+	finMux.Handle("/v1/", http.StripPrefix("/v1", mainMuxWrapped))
 	health.Setup(finMux)
 
 	server := &http.Server{
