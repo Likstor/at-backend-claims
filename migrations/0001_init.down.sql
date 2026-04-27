@@ -1,0 +1,7 @@
+BEGIN;
+
+DROP TABLE IF EXISTS claims;
+DROP TABLE IF EXISTS subcategories;
+DROP TABLE IF EXISTS categories;
+
+COMMIT;

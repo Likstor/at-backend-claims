@@ -1,0 +1,61 @@
+package handlers
+
+import (
+	"at-backend-claims/internal/pkg/apperror"
+	"at-backend-claims/internal/pkg/logs"
+	"at-backend-claims/internal/pkg/responses"
+	"errors"
+	"log/slog"
+	"net/http"
+	"strconv"
+)
+
+func (h categoriesHandlerForAdmins) deleteCategory(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseUint(r.PathValue("id"), 10, 64)
+	if err != nil {
+		slog.ErrorContext(r.Context(), err.Error())
+
+		responses.NotFound(r.Context(), w)
+		return
+	}
+
+	if err := h.usecase.DeleteCategory(r.Context(), id); err != nil {
+		logs.Error(r.Context(), err)
+
+		switch {
+		case errors.Is(err, apperror.ErrCategoryNotExists):
+			responses.NotFound(r.Context(), w)
+		default:
+			responses.InternalServerError(r.Context(), w)
+		}
+
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h categoriesHandlerForAdmins) deleteSubcategory(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseUint(r.PathValue("id"), 10, 64)
+	if err != nil {
+		slog.ErrorContext(r.Context(), err.Error())
+
+		responses.NotFound(r.Context(), w)
+		return
+	}
+
+	if err := h.usecase.DeleteSubcategory(r.Context(), id); err != nil {
+		logs.Error(r.Context(), err)
+
+		switch {
+		case errors.Is(err, apperror.ErrCategoryNotExists):
+			responses.NotFound(r.Context(), w)
+		default:
+			responses.InternalServerError(r.Context(), w)
+		}
+
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

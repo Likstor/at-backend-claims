@@ -1,0 +1,32 @@
+name: at
+
+services:
+  backend-claims:
+    container_name: backend-claims
+    build:
+      context: ../
+      dockerfile: deployment/Dockerfile
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:${BACKEND_PORT}/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - at_claims-storage
+      - at_auth
+      - at_object-storage
+      - at_proxy
+    env_file:
+      - .env
+    restart: unless-stopped
+
+networks:
+  at_claims-storage:
+    external: true
+  at_auth:
+    external: true
+  at_proxy:
+    external: true
+  at_object-storage:
+    external: true
