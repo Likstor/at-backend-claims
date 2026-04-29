@@ -9,6 +9,10 @@ import (
 func (cs claimsUsecase) Update(ctx context.Context, updatedClaim domain.Claim) error {
 	updatedClaim.Status = domain.ClaimStatusPending
 
+	if !cs.pointChecker.IsPointInPolygon(updatedClaim.Longitude, updatedClaim.Latitude) {
+		return apperror.NewErrorCtxWithoutMsg(ctx, apperror.ErrPointIsNotInPolygon)
+	}
+
 	if err := cs.repo.WithinTransaction(ctx, func(ctx context.Context) error {
 		claim, err := cs.repo.GetByID(ctx, updatedClaim.ID)
 		if err != nil {

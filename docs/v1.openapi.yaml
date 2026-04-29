@@ -1,0 +1,1013 @@
+openapi: 3.1.0
+info:
+  title: Claims service API
+  version: "1.0"
+
+tags:
+  - name: admin
+    description: Действия, доступ к которым имеют только администраторы
+  - name: operator
+    description: Действия, доступ к которым имеют только операторы
+  - name: categories
+    description: Действия, связанные с категориями и подкатегориями
+  - name: claims
+    description: Действия, связанные с заявками (предложениями/проблемами)
+  - name: map
+    description: Действия, связанные с картой
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  
+  schemas:
+    error:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    claim:
+      type: object
+      required:
+        - title
+        - description
+        - category
+        - latitude
+        - longitude
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        latitude:
+          type: number
+          format: latitude
+        longitude:
+          type: number
+          format: longitude
+    claimFullForUsers:
+      allOf:
+        - $ref: "#/components/schemas/claim"
+        - required:
+            - id
+            - created_at
+            - updated_at
+            - status_updated_at
+            - feedback_updated_at
+            - feedback
+            - photos
+            - status
+          properties:
+            id:
+              type: integer
+              format: int64
+              minimum: 0
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+            status_updated_at:
+              type: string
+              format: date-time
+            feedback_updated_at:
+              type: string
+              format: date-time
+            feedback:
+              type: string
+            photos:
+              type: array
+              items:
+                type: string
+                format: url
+            status:
+              type: string
+              enum: [declined, accepted, pending, completed]
+    claimFullForAdmins:
+      allOf:
+        - $ref: "#/components/schemas/claimFullForUsers"
+          required:
+            - created_by
+          properties:
+            created_by:
+              type: integer
+              format: int64
+              minimum: 1
+
+    categories:
+      type: object
+      required:
+        - categories
+      properties:
+        categories:
+          type: array
+          items:
+            type: object
+            required:
+              - id
+              - name
+              - subcategories
+            properties:
+              id:
+                type: integer
+                format: int64
+                minimum: 1
+              name:
+                type: string
+              subcategories:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      format: int64
+                      minimum: 1
+                    name:
+                      type: string
+                      example:
+
+  responses:
+    internalServerError:
+      description: Ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/error"
+    badRequest:
+      description: Допущена синтаксическая ошибка в запросе
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/error"
+    unprocessableEntity:
+      description: Допущена семантическая ошибка в запросе (см. содержимое ответа)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/error"
+    notFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/error"
+    error:
+      description: Ошибка
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/error"
+
+paths:
+  /v1/categories/:
+    get:
+      description: Получение актуальных категорий и подкатегорий
+      tags:
+        - categories
+      security:
+        - bearerAuth: []
+      responses:
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "200":
+          description: Актуальные категории и подкатегории успешно получены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          minimum: 1
+                        name:
+                          type: string
+                        subcategories:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                type: integer
+                                minimum: 1
+                              name:
+                                type: string
+
+  /v1/admins/categories/:
+    post:
+      description: Создание новой категории
+      tags:
+        - categories
+        - admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                category_name:
+                  type: string
+              required:
+                - category_name
+        required: true
+      responses:
+        "400":
+          $ref: "#/components/responses/badRequest"
+        "422":
+          $ref: "#/components/responses/unprocessableEntity"
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "409":
+          description: Категория с таким названием уже существует
+          $ref: "#/components/responses/error"
+        "200":
+          description: Категория успешно создана
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  category_id:
+                    type: integer
+                    minimum: 1
+
+  /v1/admins/categories/{id}:
+    delete:
+      description: Удаление категории
+      tags:
+        - categories
+        - admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: integer
+            minimum: 1
+          required: true
+      responses:
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "404":
+          description: Категория не найдена
+          $ref: "#/components/responses/notFound"
+        "204":
+          description: Категория успешно удалена
+
+    put:
+      description: Обновление категории
+      tags:
+        - categories
+        - admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: integer
+            minimum: 1
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                category_name:
+                  type: string
+              required:
+                - category_name
+        required: true
+      responses:
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "400":
+          $ref: "#/components/responses/badRequest"
+        "422":
+          $ref: "#/components/responses/unprocessableEntity"
+        "409":
+          description: Категория с таким названием уже существует
+          $ref: "#/components/responses/error"
+        "404":
+          description: Категория не найдена
+          $ref: "#/components/responses/notFound"
+        "204":
+          description: Категория успешно обновлена
+  
+  /v1/admins/categories/subcategories/:
+    post:
+      description: Создание новой подкатегории
+      tags:
+        - categories
+        - admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                category_id:
+                  type: integer
+                  minimum: 1
+                subcategory_name:
+                  type: string
+              required:
+                - subcategory_name
+                - category_id
+        required: true
+      responses:
+        "400":
+          $ref: "#/components/responses/badRequest"
+        "422":
+          $ref: "#/components/responses/unprocessableEntity"
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "409":
+          description: Подкатегория с таким названием для этой категории уже существует
+          $ref: "#/components/responses/error"
+        "404":
+          description: Категория не найдена
+          $ref: "#/components/responses/notFound"
+        "200":
+          description: Подкатегория успешно создана
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subcategory_id:
+                    type: integer
+                    minimum: 1
+
+  /v1/admins/categories/subcategories/{id}:
+    delete:
+      description: Удаление подкатегории
+      tags:
+        - categories
+        - admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: integer
+            minimum: 1
+          required: true
+      responses:
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "404":
+          description: Подкатегория не найдена
+          $ref: "#/components/responses/notFound"
+        "204":
+          description: Подкатегория успешно удалена
+
+    put:
+      description: Обновление подкатегории
+      tags:
+        - categories
+        - admin
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: integer
+            minimum: 1
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                subcategory_name:
+                  type: string
+              required:
+                - subcategory_name
+        required: true
+      responses:
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "400":
+          $ref: "#/components/responses/badRequest"
+        "422":
+          $ref: "#/components/responses/unprocessableEntity"
+        "409":
+          description: Подкатегория с таким названием для этой категории уже существует
+          $ref: "#/components/responses/error"
+        "404":
+          description: Подкатегория не найдена
+          $ref: "#/components/responses/notFound"
+        "204":
+          description: Подкатегория успешно обновлена
+
+  /v1/claims/problem:
+    post:
+      description: Создание нового сообщения о проблеме
+      tags:
+        - claims
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/claim"
+                - properties:
+                    photos:
+                      type: array
+                      items:
+                        type: string
+                        format: binary
+                      description: Список файлов
+        required: true
+      responses:
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "413":
+          description: Слишком большое содержимое запроса
+          $ref: "#/components/responses/error"
+        "422":
+          description: Один из параметров имеет неверный формат, либо отсутствует
+          $ref: "#/components/responses/unprocessableEntity"
+        "200":
+          description: Сообщение о проблеме успешно создано
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  claim_id:
+                    type: integer
+                    format: int64
+                    minimum: 1
+
+  /v1/claims/proposal:
+    post:
+      description: Создание нового предложения
+      tags:
+        - claims
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+                - latitude
+                - longitude
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                latitude:
+                  type: number
+                  format: latitude
+                longitude:
+                  type: number
+                  format: longitude
+        required: true
+      responses:
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "413":
+          description: Слишком большое содержимое запроса
+          $ref: "#/components/responses/error"
+        "422":
+          description: Один из параметров имеет неверный формат, либо отсутствует
+          $ref: "#/components/responses/unprocessableEntity"
+        "200":
+          description: Предложение успешно создано
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  claim_id:
+                    type: integer
+                    format: int64
+                    minimum: 1
+
+  /v1/claims/{id}:
+    delete:
+      description: Удаление заявки
+      tags:
+        - claims
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: integer
+            minimum: 1
+          required: true
+      responses:
+        "403":
+          description: Недостаточно прав для выполнения операции
+          $ref: "#/components/responses/error"
+        "404":
+          description: Заявка не найдена
+          $ref: "#/components/responses/error"
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "204":
+          description: Заявка успешно удалена
+
+    get:
+      description: Получение информации о заявке
+      tags:
+        - claims
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: integer
+            minimum: 1
+          required: true
+      responses:
+        "404":
+          description: Заявка не найдена
+          $ref: "#/components/responses/error"
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "200":
+          description: Информация о заявке успешно получена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/claimFullForUsers"
+      
+    put:
+      description: Обновление информации о заявке
+      tags:
+        - claims
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: integer
+            minimum: 1
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/claim"
+        required: true
+      responses:
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "404":
+          description: Заявка не найдена
+          $ref: "#/components/responses/notFound"
+        "400":
+          $ref: "#/components/responses/badRequest"
+        "422":
+          description: Один из параметров имеет неверный формат, либо отсутствует
+          $ref: "#/components/responses/unprocessableEntity"
+        "403":
+          description: Недостаточно прав для выполнения операции
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/error"
+        "204":
+          description: Заявка успешно обновлена
+
+  /v1/claims/page:
+    get:
+      description: Получение списка заявок пользователя
+      tags:
+        - claims
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page_size
+          required: false
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 100
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "400":
+          $ref: "#/components/responses/badRequest"
+        "200":
+          description: Список заявок успешно получен
+          content:
+            application/json:
+              schema:
+                properties:
+                  claims:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/claim"
+                        - properties:
+                            id:
+                              type: integer
+                              minimum: 1
+                            created_at:
+                              type: string
+                              format: date-time
+                            updated_at:
+                              type: string
+                              format: date-time
+
+  /v1/claims/map:
+    get:
+      description: Получение всех заявок на ограниченной территории
+      tags:
+        - claims
+        - map
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: lat1
+          in: query
+          required: true
+          schema:
+            type: number
+            format: latitude
+        - name: lat2
+          in: query
+          required: true
+          schema:
+            type: number
+            format: latitude
+        - name: long1
+          in: query
+          required: true
+          schema:
+            type: number
+            format: longitude
+        - name: long2
+          in: query
+          required: true
+          schema:
+            type: number
+            format: longitude
+      responses:
+        "400":
+          description: Один из параметров имеет неверный формат, либо отсутствует
+          $ref: "#/components/responses/badRequest"
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "200":
+          description: Заявки успешно получены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  claims:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          minimum: 1
+                        latitude:
+                          type: number
+                          format: latitude
+                        longitude:
+                          type: number
+                          format: longitude
+
+  /v1/districts/:
+    get:
+      description: Получение доступных областей для создания заявок
+      tags: 
+        - map
+      security: 
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Области успешно получены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  districts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        polygon:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              longitude:
+                                type: number
+                                format: float64
+                              latitude:
+                                type: number
+                                format: float64
+
+  /v1/districts/check-point:
+    get:
+      description: Проверка нахождения точки в одной из доступных областей
+      tags: 
+        - map
+      security: 
+        - bearerAuth: []
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+            format: latitude
+        - name: long
+          in: query
+          required: true
+          schema:
+            type: number
+            format: longitude
+      responses:
+        "400":
+          description: Один из параметров имеет неверный формат, либо отсутствует
+          $ref: "#/components/responses/badRequest"
+        "200":
+          description: Успешно получен результат проверки
+          content:
+            application/json:
+                schema:
+                  type: object
+                  properties:
+                    inside:
+                      type: boolean
+
+  /v1/admins/claims/{id}:
+    get:
+      description: Получение расширенной информации о заявке
+      tags:
+        - claims
+        - operator
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: integer
+            minimum: 1
+          required: true
+      responses:
+        "404":
+          description: Заявка не найдена
+          $ref: "#/components/responses/badRequest"
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "200":
+          description: Расширенная информация о заявке успешно получена
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/claimFullForAdmins"
+    
+    delete:
+      description: Удаление заявки
+      tags:
+        - claims
+        - operator
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: integer
+            minimum: 1
+          required: true
+      responses:
+        "404":
+          description: Заявка не найдена
+          $ref: "#/components/responses/badRequest"
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "204":
+          description: Заявка успешно удалена
+  
+  /v1/admins/claims/page:
+    get:
+      description: Получение общего списка заявок
+      tags:
+        - claims
+        - operator
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page_size
+          required: false
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 100
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "400":
+          $ref: "#/components/responses/badRequest"
+        "200":
+          description: Список заявок успешно получен
+          content:
+            application/json:
+              schema:
+                properties:
+                  claims:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/claim"
+                        - properties:
+                            id:
+                              type: integer
+                              minimum: 1
+                            created_at:
+                              type: string
+                              format: date-time
+                            updated_at:
+                              type: string
+                              format: date-time
+
+  /v1/admins/claims/{id}/feedback:
+    post:
+      description: Обновление обратной связи по заявке
+      tags:
+        - claims
+        - operator
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - feedback
+              properties:
+                feedback:
+                  type: string
+        required: true
+      responses:
+        "404":
+          description: Заявка не найдена
+          $ref: "#/components/responses/notFound"
+        "400":
+          $ref: "#/components/responses/badRequest"
+        "422":
+          $ref: "#/components/responses/unprocessableEntity"
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "204":
+          description: Обратная связь добавлена/обновлена
+
+  /v1/admins/claims/{id}/status:
+    post:
+      description: Обновления статуса заявки
+      tags:
+        - claims
+        - operator
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          schema:
+            type: integer
+          required: true
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [pending, accepted, declined, completed]
+        required: true
+      responses:
+        "404":
+          description: Заявка не найдена
+          $ref: "#/components/responses/notFound"
+        "400":
+          $ref: "#/components/responses/badRequest"
+        "422":
+          $ref: "#/components/responses/unprocessableEntity"
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "204":
+          description: Статус обновлен
+
+  /v1/admins/claims/users/page:
+    get:
+      description: Получение списка заявок конкретного пользователя
+      tags:
+        - claims
+        - operator
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: page_size
+          required: false
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 100
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "500":
+          $ref: "#/components/responses/internalServerError"
+        "400":
+          $ref: "#/components/responses/badRequest"
+        "200":
+          description: Список заявок пользователя успешно получен
+          content:
+            application/json:
+              schema:
+                properties:
+                  claims:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: "#/components/schemas/claim"
+                        - properties:
+                            id:
+                              type: integer
+                              format: int64
+                              minimum: 1
+                            created_at:
+                              type: string
+                              format: date-time
+                            updated_at:
+                              type: string
+                              format: date-time

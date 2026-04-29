@@ -4,6 +4,8 @@ import (
 	"at-backend-claims/internal/domain"
 	"net/url"
 	"strconv"
+
+	"github.com/google/uuid"
 )
 
 const defaultPageSize = 10
@@ -20,6 +22,20 @@ func getPageSize(v url.Values) uint64 {
 	}
 
 	return defaultPageSize
+}
+
+func getUserID(v url.Values) (uuid.UUID, bool) {
+	userIDString := v.Get("user_id")
+	if userIDString == "" {
+		return uuid.UUID{}, false
+	}
+
+	userID, err := uuid.Parse(userIDString)
+	if err != nil {
+		return uuid.UUID{}, false
+	}
+
+	return userID, true
 }
 
 func sliceClaimsToSliceClaimsForPage(page []domain.Claim) []map[string]any {

@@ -82,7 +82,7 @@ func (h claimsHandler) getPage(w http.ResponseWriter, r *http.Request) {
 
 	uid, ok := reqctx.GetUserID(r.Context())
 	if !ok {
-		slog.ErrorContext(r.Context(), "empty userID in context")
+		slog.ErrorContext(r.Context(), apperror.ErrCtxEmptyUserID.Error())
 
 		responses.InternalServerError(r.Context(), w)
 		return
@@ -113,7 +113,7 @@ func (h claimsHandler) getPage(w http.ResponseWriter, r *http.Request) {
 func (h claimsHandler) getFirstPage(w http.ResponseWriter, r *http.Request, pageSize uint64) {
 	uid, ok := reqctx.GetUserID(r.Context())
 	if !ok {
-		slog.ErrorContext(r.Context(), "empty userID in context")
+		slog.ErrorContext(r.Context(), apperror.ErrCtxEmptyUserID.Error())
 
 		responses.InternalServerError(r.Context(), w)
 		return
@@ -222,8 +222,8 @@ func (c claimsHandler) getClaimsByArea(w http.ResponseWriter, r *http.Request) {
 
 	for _, claim := range claims {
 		claimsForMap = append(claimsForMap, map[string]any{
-			"id": claim.ID,
-			"latitude": claim.Latitude,
+			"id":        claim.ID,
+			"latitude":  claim.Latitude,
 			"longitude": claim.Longitude,
 		})
 	}
@@ -239,4 +239,3 @@ func (c claimsHandler) getClaimsByArea(w http.ResponseWriter, r *http.Request) {
 		resp,
 	)
 }
-

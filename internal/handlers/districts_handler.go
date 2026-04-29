@@ -87,7 +87,7 @@ func (d districtsHandler) isPointInPolygon(w http.ResponseWriter, r *http.Reques
 	)
 }
 
-var preparedDistricts map[string]any
+var preparedDistricts []map[string]any
 
 var onceGetDistricts sync.Once
 
@@ -95,7 +95,7 @@ func (d districtsHandler) getDistricts(w http.ResponseWriter, r *http.Request) {
 	onceGetDistricts.Do(func() {
 		districts := d.service.Get()
 
-		resp := make(map[string]any)
+		preparedDistricts = make([]map[string]any, 0, len(districts))
 
 		for key, polygon := range districts {
 			polygonResp := make([]map[string]any, 0, len(polygon))
@@ -107,16 +107,21 @@ func (d districtsHandler) getDistricts(w http.ResponseWriter, r *http.Request) {
 				})
 			}
 
-			resp[key] = polygonResp
+			preparedDistricts = append(preparedDistricts, map[string]any{
+				"name": key,
+				"polygon": polygonResp,
+			})
 		}
-
-		preparedDistricts = resp
 	})
+
+	resp := map[string]any{
+		"districts": preparedDistricts,
+	}
 
 	responses.JSON(
 		r.Context(),
 		w,
 		http.StatusOK,
-		preparedDistricts,
+		resp,
 	)
 }

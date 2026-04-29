@@ -93,14 +93,14 @@ func (h claimsHandler) createProblem(w http.ResponseWriter, r *http.Request) {
 			r.Context(),
 			w,
 			http.StatusUnprocessableEntity,
-			err.Error(),
+			http.StatusText(http.StatusUnprocessableEntity),
 		)
 		return
 	}
 
 	uid, ok := reqctx.GetUserID(r.Context())
 	if !ok {
-		slog.ErrorContext(r.Context(), "empty userID in context")
+		slog.ErrorContext(r.Context(), apperror.ErrCtxEmptyUserID.Error())
 
 		responses.InternalServerError(r.Context(), w)
 		return
@@ -141,14 +141,7 @@ func (h claimsHandler) createProblem(w http.ResponseWriter, r *http.Request) {
 		logs.Error(r.Context(), err)
 
 		switch {
-		case errors.Is(err, apperror.ErrUnknownClaimCategory):
-			responses.Error(
-				r.Context(),
-				w,
-				http.StatusUnprocessableEntity,
-				err.Error(),
-			)
-		case errors.Is(err, apperror.ErrPointIsNotInPolygon):
+		case errors.Is(err, apperror.ErrUnknownClaimCategory), errors.Is(err, apperror.ErrPointIsNotInPolygon):
 			responses.Error(
 				r.Context(),
 				w,
@@ -241,14 +234,14 @@ func (h claimsHandler) createProposal(w http.ResponseWriter, r *http.Request) {
 			r.Context(),
 			w,
 			http.StatusUnprocessableEntity,
-			err.Error(),
+			http.StatusText(http.StatusUnprocessableEntity),
 		)
 		return
 	}
 
 	uid, ok := reqctx.GetUserID(r.Context())
 	if !ok {
-		slog.ErrorContext(r.Context(), "empty userID in context")
+		slog.ErrorContext(r.Context(), apperror.ErrCtxEmptyUserID.Error())
 
 		responses.InternalServerError(r.Context(), w)
 		return

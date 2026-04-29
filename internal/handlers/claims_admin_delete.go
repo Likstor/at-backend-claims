@@ -30,7 +30,6 @@ func (h claimsHandlerForAdmins) deleteClaim(w http.ResponseWriter, r *http.Reque
 		}
 
 		return
-
 	}
 
 	w.WriteHeader(http.StatusNoContent)

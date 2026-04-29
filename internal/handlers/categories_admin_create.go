@@ -148,6 +148,8 @@ func (h categoriesHandlerForAdmins) createSubcategory(w http.ResponseWriter, r *
 				http.StatusConflict,
 				err.Error(),
 			)
+		case errors.Is(err, apperror.ErrCategoryNotExists):
+			responses.NotFound(r.Context(), w)
 		default:
 			responses.InternalServerError(r.Context(), w)
 		}

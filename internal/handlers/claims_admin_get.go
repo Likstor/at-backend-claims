@@ -128,17 +128,14 @@ func (h claimsHandlerForAdmins) getFirstPageClaims(w http.ResponseWriter, r *htt
 }
 
 func (h claimsHandlerForAdmins) getUserClaimsPage(w http.ResponseWriter, r *http.Request) {
-	uidString := r.URL.Query().Get("user_id")
-	if uidString == "" {
-		responses.NotFound(r.Context(), w)
-		return
-	}
-
-	uid, err := uuid.Parse(uidString)
-	if err != nil {
-		slog.ErrorContext(r.Context(), err.Error())
-
-		responses.NotFound(r.Context(), w)
+	userID, ok := getUserID(r.URL.Query())
+	if !ok {
+		responses.Error(
+			r.Context(),
+			w,
+			http.StatusBadRequest,
+			http.StatusText(http.StatusBadRequest),
+		)
 		return
 	}
 
@@ -146,7 +143,7 @@ func (h claimsHandlerForAdmins) getUserClaimsPage(w http.ResponseWriter, r *http
 
 	cursorString := r.URL.Query().Get("cursor")
 	if cursorString == "" {
-		h.getUserClaimsFirstPage(w, r, pageSize, uid)
+		h.getUserClaimsFirstPage(w, r, pageSize, userID)
 		return
 	}
 
@@ -163,7 +160,7 @@ func (h claimsHandlerForAdmins) getUserClaimsPage(w http.ResponseWriter, r *http
 		return
 	}
 
-	page, err := h.usecase.GetUserPage(r.Context(), cursor, uid, pageSize)
+	page, err := h.usecase.GetUserPage(r.Context(), cursor, userID, pageSize)
 	if err != nil {
 		logs.Error(r.Context(), err)
 

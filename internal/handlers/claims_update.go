@@ -62,9 +62,9 @@ func (h claimsHandler) update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uid, ok := reqctx.GetUserID(r.Context())
+	userID, ok := reqctx.GetUserID(r.Context())
 	if !ok {
-		slog.ErrorContext(r.Context(), "empty userID in context")
+		slog.ErrorContext(r.Context(), apperror.ErrCtxEmptyUserID.Error())
 
 		responses.InternalServerError(r.Context(), w)
 		return
@@ -72,7 +72,7 @@ func (h claimsHandler) update(w http.ResponseWriter, r *http.Request) {
 
 	claim := domain.Claim{
 		ID:          id,
-		CreatedBy:   uid,
+		CreatedBy:   userID,
 		Title:       *claimDTO.Title,
 		Description: *claimDTO.Description,
 		Latitude:    *claimDTO.Latitude,
@@ -83,12 +83,12 @@ func (h claimsHandler) update(w http.ResponseWriter, r *http.Request) {
 		logs.Error(r.Context(), err)
 
 		switch {
-		case errors.Is(err, apperror.ErrUnknownClaimCategory):
+		case errors.Is(err, apperror.ErrUnknownClaimCategory), errors.Is(err, apperror.ErrPointIsNotInPolygon):
 			responses.Error(
 				r.Context(),
 				w,
 				http.StatusUnprocessableEntity,
-				err.Error(),
+				http.StatusText(http.StatusUnprocessableEntity),
 			)
 		case errors.Is(err, apperror.ErrUserCannotPerformOperation):
 			responses.Error(

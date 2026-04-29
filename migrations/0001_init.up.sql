@@ -19,13 +19,14 @@ CREATE TABLE claims (
 
 CREATE TABLE categories (
     id BIGSERIAL PRIMARY KEY,
-    name TEXT
+    name TEXT UNIQUE
 );
 
 CREATE TABLE subcategories (
     id BIGSERIAL PRIMARY KEY,
     name TEXT,
-    category_id BIGINT REFERENCES categories(id) ON DELETE CASCADE
+    category_id BIGINT REFERENCES categories(id) ON DELETE CASCADE,
+    UNIQUE (category_id, name)
 );
 
 COMMIT;
