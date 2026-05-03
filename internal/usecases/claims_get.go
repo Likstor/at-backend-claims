@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"at-backend-claims/internal/domain"
+	"at-backend-claims/internal/pkg/apperror"
+	"at-backend-claims/internal/pkg/reqctx"
 	"context"
 	"fmt"
 	"log/slog"
@@ -36,6 +38,8 @@ func (cs claimsUsecase) GetByID(ctx context.Context, id uint64) (domain.Claim, e
 	if err != nil {
 		return dummyClaim, err
 	}
+
+	// TODO: Добавить проверку на то, что заявка в работе, либо завершена недавно
 
 	cs.claimPhotosPathToURLs(ctx, &claim)
 
@@ -97,12 +101,19 @@ func (cs claimsUsecase) GetUserPage(ctx context.Context, cursor uint64, uid uuid
 func (cs claimsUsecase) GetByArea(ctx context.Context, lat1, long1, lat2, long2 float64) ([]domain.Claim, error) {
 	noOlderThan := time.Now().Add(-cs.hideCompletedClaimsOlderThan)
 
+	userID, ok := reqctx.GetUserID(ctx)
+	if !ok {
+		return nil, apperror.ErrCtxEmptyUserID
+	}
+
 	claims, err := cs.repo.GetByArea(
 		ctx,
 		lat1,
 		long1,
 		lat2,
 		long2,
+		userID,
+		domain.ClaimStatusPending,
 		domain.ClaimStatusAccepted,
 		domain.ClaimStatusCompleted,
 		noOlderThan,

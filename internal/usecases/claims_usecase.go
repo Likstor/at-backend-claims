@@ -17,7 +17,7 @@ type claimsRepo interface {
 	GetPage(ctx context.Context, ptr uint64, pageSize uint64) ([]domain.Claim, error)
 	GetFirstUserPage(ctx context.Context, pageSize uint64, uid uuid.UUID) ([]domain.Claim, error)
 	GetUserPage(ctx context.Context, ptr uint64, pageSize uint64, uid uuid.UUID) ([]domain.Claim, error)
-	GetByArea(ctx context.Context, lat1, long1, lat2, long2 float64, acceptedStatus, completedStatus domain.ClaimStatus, startingFrom time.Time) ([]domain.Claim, error)
+	GetByArea(ctx context.Context, lat1, long1, lat2, long2 float64, createdBy uuid.UUID, pendingStatus, acceptedStatus, completedStatus domain.ClaimStatus, startingFrom time.Time) ([]domain.Claim, error)
 
 	Create(ctx context.Context, data domain.Claim) (uint64, error)
 

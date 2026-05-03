@@ -141,12 +141,26 @@ const queryClaimsGetByArea = `
 		id, latitude, longitude
 	FROM claims
 	WHERE 
-		latitude <= $1 and longitude >= $2 and latitude > $3 and longitude < $4 and (status = $5 OR (status = $6 and status_updated_at >= $7))
+		latitude <= $1 
+		and longitude >= $2 
+		and latitude > $3 
+		and longitude < $4 
+		and (status = $7 OR (status = $8 AND status_updated_at >= $9) OR (status = $6 AND created_by = $5))
 `
 
 // TODO: Пересмотреть работу с поиском активных заявок
 
-func (cr claimsRepository) GetByArea(ctx context.Context, lat1, long1, lat2, long2 float64, acceptedStatus, completedStatus domain.ClaimStatus, startingFrom time.Time) ([]domain.Claim, error) {
+func (cr claimsRepository) GetByArea(
+	ctx context.Context,
+	lat1 float64,
+	long1 float64,
+	lat2 float64,
+	long2 float64,
+	createdBy uuid.UUID,
+	pendingStatus domain.ClaimStatus,
+	acceptedStatus domain.ClaimStatus,
+	completedStatus domain.ClaimStatus,
+	startingFrom time.Time) ([]domain.Claim, error) {
 	rows, err := cr.Conn(ctx).Query(
 		ctx,
 		queryClaimsGetByArea,
@@ -154,6 +168,8 @@ func (cr claimsRepository) GetByArea(ctx context.Context, lat1, long1, lat2, lon
 		long1,
 		lat2,
 		long2,
+		createdBy,
+		pendingStatus.String(),
 		acceptedStatus.String(),
 		completedStatus.String(),
 		startingFrom,
