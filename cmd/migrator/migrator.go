@@ -39,7 +39,7 @@ func main() {
 
 	migration, err := migrate.New("file://"+cfg.MigrationsPath, storageURL)
 	if err != nil {
-		slog.Error(err.Error())
+		slog.Error("migration create error")
 
 		return
 	}
