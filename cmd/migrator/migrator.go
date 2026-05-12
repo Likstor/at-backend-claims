@@ -56,7 +56,7 @@ func main() {
 				return
 			}
 
-			slog.Error(err.Error())
+			slog.Error("migrations apply error")
 			continue
 		}
 
