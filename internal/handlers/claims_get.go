@@ -218,7 +218,7 @@ func (c claimsHandler) getClaimsByArea(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claimsForMap := make([]map[string]any, len(claims))
+	claimsForMap := make([]map[string]any, 0, len(claims))
 
 	for _, claim := range claims {
 		claimsForMap = append(claimsForMap, map[string]any{
